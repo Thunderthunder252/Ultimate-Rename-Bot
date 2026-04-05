@@ -103,7 +103,7 @@ async def rename_process(client, message):
             document=file_path,
             file_name=new_name,
             thumb=thumb if thumb and os.path.exists(thumb) else None,
-            caption=f"`{new_name}`", # Caption is strictly the name
+            caption=f"{new_name}", # Caption is strictly the name
             force_document=True,
             progress=progress_for_pyrogram,
             progress_args=("Uploading", status, start_time)
