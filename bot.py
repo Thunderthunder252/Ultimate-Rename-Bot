@@ -22,7 +22,7 @@ except RuntimeError:
 # --- 3. CONFIGURATION ---
 API_ID = 37674103
 API_HASH = "f9ecc621ed4865256f94f71a7dd6a1c8"
-BOT_TOKEN = "8709295055:AAFDxRIDE03upWylyGjHasus9mv_ME0o5ik"
+BOT_TOKEN = "8709295055:AAHOv4sHtQA6eletK7jc1Nw1REeajbadYNQ"
 
 bot = Client("rename_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
