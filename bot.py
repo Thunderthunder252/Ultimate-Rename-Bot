@@ -27,11 +27,53 @@ BOT_TOKEN = "8709295055:AAFDxRIdEO3upWylyGjHasus9mv_ME0o5ik"
 
 bot = Client("rename_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
-# (Paste your existing command handlers here: start, set_thumbnail, file_received, etc.)
+# --- 4. COMMAND HANDLERS ---
 
-# --- 4. RUN EVERYTHING ---
+user_thumbnails = {}
+
+@bot.on_message(filters.command("start") & filters.private)
+async def start(client, message):
+    await message.reply_text(f"✨ **Welcome {message.from_user.first_name}!**\n\nSend a Photo for a thumbnail or a File to rename.")
+
+@bot.on_message(filters.photo & filters.private)
+async def set_thumbnail(client, message):
+    user_id = message.from_user.id
+    path = f"thumb_{user_id}.jpg"
+    await message.download(file_name=path)
+    user_thumbnails[user_id] = path
+    await message.reply_text("✅ **Thumbnail Saved!**")
+
+@bot.on_message((filters.document | filters.video) & filters.private)
+async def file_received(client, message):
+    user_thumbnails[f"file_{message.from_user.id}"] = message
+    await message.reply_text("📝 **File Received!** Send the **NEW NAME** now.")
+
+@bot.on_message(filters.text & filters.private & ~filters.command("start"))
+async def rename_process(client, message):
+    user_id = message.from_user.id
+    file_key = f"file_{user_id}"
+    if file_key not in user_thumbnails: return
+
+    new_name = message.text
+    old_file_msg = user_thumbnails[file_key]
+    thumb = user_thumbnails.get(user_id)
+
+    status = await message.reply_text("📥 **Processing...**")
+    file_path = await client.download_media(old_file_msg)
+    
+    await client.send_document(
+        chat_id=message.chat.id,
+        document=file_path,
+        file_name=new_name,
+        thumb=thumb,
+        caption=f"✅ **Renamed to:** `{new_name}`"
+    )
+    await status.delete()
+    if os.path.exists(file_path): os.remove(file_path)
+    del user_thumbnails[file_key]
+
+# --- 5. RUN EVERYTHING ---
 if __name__ == "__main__":
-    # Start the web server in a separate thread
     Thread(target=run_server).start()
     print("🚀 Bot and Server Started!")
     bot.run()
