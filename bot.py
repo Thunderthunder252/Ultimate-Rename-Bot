@@ -35,28 +35,23 @@ async def progress_for_pyrogram(current, total, ud_type, message, start):
     diff = now - start
     if round(diff % 5.00) == 0 or current == total:
         percentage = current * 100 / total
-        speed = current / diff
-        
-        # Simple Progress Bar for Stability
         progress = "[{0}{1}]".format(
             ''.join(["▰" for i in range(int(percentage // 10))]),
             ''.join(["▱" for i in range(10 - int(percentage // 10))])
         )
-        
         tmp = f"📥 **{ud_type}**\n{progress} **{round(percentage, 2)}%**"
-        
         try:
-            # The 'NoneType' check: only edit if message exists
             if message:
                 await message.edit(tmp)
-        except Exception:
+        except:
             pass
 
 # --- 5. AUTO-DELETE ---
-async def delete_after_delay(client, chat_id, message_id, delay):
+async def delete_after_delay(client, chat_id, message_ids, delay):
     await asyncio.sleep(delay)
     try:
-        await client.delete_messages(chat_id, message_id)
+        # Pass a list of IDs to delete both the file and the warning text
+        await client.delete_messages(chat_id, message_ids)
     except:
         pass 
 
@@ -72,7 +67,7 @@ async def set_thumbnail(client, message):
     path = os.path.join(os.getcwd(), f"thumb_{user_id}.jpg")
     await message.download(file_name=path)
     user_thumbnails[user_id] = path
-    await message.reply_text("✅ **Thumbnail Saved!**")
+    await message.reply_text("✅ **Thumbnail Saved Successfully!**")
 
 @bot.on_message((filters.document | filters.video) & filters.private)
 async def file_received(client, message):
@@ -94,7 +89,6 @@ async def rename_process(client, message):
     status = await message.reply_text("📥 **Starting Process...**")
     try:
         start_time = time.time()
-        # DOWNLOAD
         file_path = await client.download_media(
             message=old_file_msg,
             progress=progress_for_pyrogram,
@@ -104,22 +98,30 @@ async def rename_process(client, message):
         await status.edit("📤 **Starting Upload...**")
         start_time = time.time()
         
-        # UPLOAD
+        # 1. SEND THE FILE (Caption is ONLY the filename)
         sent_file = await client.send_document(
             chat_id=message.chat.id,
             document=file_path,
             file_name=new_name,
             thumb=thumb if thumb and os.path.exists(thumb) else None,
-            caption=f"📂 **New Name:** `{new_name}`\n\n⚠️ **WARNING:** _This file will be deleted in 10 minutes!_",
+            caption=f"`{new_name}`",
             force_document=True,
             progress=progress_for_pyrogram,
             progress_args=("Uploading", status, start_time)
         )
         
+        # 2. SEND THE SEPARATE WARNING MESSAGE
+        warning_text = await message.reply_text(
+            f"`{new_name}`\n"
+            f"⚠️ **WARNING:** _This file and message will be deleted in 10 minutes!_"
+        )
+        
         await status.delete()
         if os.path.exists(file_path): os.remove(file_path)
         del user_thumbnails[file_key]
-        asyncio.create_task(delete_after_delay(client, message.chat.id, sent_file.id, 600))
+        
+        # Auto-delete BOTH the file and the warning message
+        asyncio.create_task(delete_after_delay(client, message.chat.id, [sent_file.id, warning_text.id], 600))
 
     except Exception as e:
         if status: await status.edit(f"❌ **Error:** `{str(e)}`")
