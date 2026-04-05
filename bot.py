@@ -100,7 +100,7 @@ async def rename_process(client, message):
             document=file_path,
             file_name=new_name,
             thumb=thumb_path,
-            caption=f"✅ **Renamed Successfully!**\n`{new_name}`"
+            caption=f"**{new_name}**"
         )
         
         await status.delete()
