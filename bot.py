@@ -50,7 +50,6 @@ async def progress_for_pyrogram(current, total, ud_type, message, start):
 async def delete_after_delay(client, chat_id, message_ids, delay):
     await asyncio.sleep(delay)
     try:
-        # Pass a list of IDs to delete both the file and the warning text
         await client.delete_messages(chat_id, message_ids)
     except:
         pass 
@@ -98,29 +97,28 @@ async def rename_process(client, message):
         await status.edit("📤 **Starting Upload...**")
         start_time = time.time()
         
-        # 1. SEND THE FILE (Caption is ONLY the filename)
+        # 1. SEND THE FILE (Caption is ONLY the new name)
         sent_file = await client.send_document(
             chat_id=message.chat.id,
             document=file_path,
             file_name=new_name,
             thumb=thumb if thumb and os.path.exists(thumb) else None,
-            caption=f"`{new_name}`",
+            caption=f"`{new_name}`", # Caption is strictly the name
             force_document=True,
             progress=progress_for_pyrogram,
             progress_args=("Uploading", status, start_time)
         )
         
-        # 2. SEND THE SEPARATE WARNING MESSAGE
+        # 2. SEND THE SEPARATE WARNING MESSAGE (Minimal text)
         warning_text = await message.reply_text(
-            f"`{new_name}`\n"
-            f"⚠️ **WARNING:** _This file and message will be deleted in 10 minutes!_"
+            f"⚠️ **WARNING:** _This file will be deleted in 10 minutes!_"
         )
         
         await status.delete()
         if os.path.exists(file_path): os.remove(file_path)
         del user_thumbnails[file_key]
         
-        # Auto-delete BOTH the file and the warning message
+        # Auto-delete BOTH
         asyncio.create_task(delete_after_delay(client, message.chat.id, [sent_file.id, warning_text.id], 600))
 
     except Exception as e:
